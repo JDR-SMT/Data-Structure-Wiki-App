@@ -199,7 +199,7 @@ namespace DataStructureWikiApp
         #region Delete
         private void ButtonDelete_Click(object sender, RoutedEventArgs e)
         {
-            try
+            if (ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem) >= 0)
             {
                 // display prompt
                 MessageBoxResult result = MessageBox.Show("Delete this data structure?", "", MessageBoxButton.YesNo);
@@ -219,7 +219,7 @@ namespace DataStructureWikiApp
                     BubbleSort();
                 }
             }
-            catch (IndexOutOfRangeException)
+            else // when no row is selected
             {
                 MessageBox.Show("Please select an item to delete.");
                 ClearAll();
@@ -394,12 +394,7 @@ namespace DataStructureWikiApp
         #region Save
         private void ButtonSave_Click(object sender, RoutedEventArgs e)
         {
-            if (DataStructures[0, 0] == null)
-            {
-                MessageBox.Show("Please enter data to save.");
-                return;
-            }
-            else
+            if (DataStructures[0, 0] != null)
             {
                 // displays prompt to save the 2D array to a data file
                 SaveFileDialog sfd = new SaveFileDialog
@@ -420,6 +415,11 @@ namespace DataStructureWikiApp
                 { // if cancel or exit
                     return;
                 }
+            }
+            else // when the 2D array is empty
+            {
+                MessageBox.Show("Please enter data to save.");
+                return;
             }
         }
 

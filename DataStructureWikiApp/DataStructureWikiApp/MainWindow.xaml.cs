@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -31,11 +32,11 @@ namespace DataStructureWikiApp
             // adds elements 0 and 1 from each row in the 2D array to the appropriate ListViewOutput columns
             for (int row = 0; row < RowLength(); row++)
             {
-                List<Pop> pops = new List<Pop>
+                List<ListViewItem> lvi = new List<ListViewItem>
                 {
-                    new Pop() { Name = DataStructures[row, 0], Category = DataStructures[row, 1] }
+                    new ListViewItem() { Name = DataStructures[row, 0], Category = DataStructures[row, 1] }
                 };
-                ListViewOutput.Items.Add(pops);
+                ListViewOutput.Items.Add(lvi);
             }
         }
 
@@ -117,12 +118,12 @@ namespace DataStructureWikiApp
                     BubbleSort();
                 }
                 else // if array is full
-                { 
+                {
                     MessageBox.Show("Item limit reached.");
                 }
             }
             else // if any TextBox is empty
-            { 
+            {
                 MessageBox.Show("Please complete all fields.");
             }
         }
@@ -139,15 +140,25 @@ namespace DataStructureWikiApp
         // replaces selected row in ListViewOutput with text from TextBoxName, TextBoxCategory, TextBoxStructure and TextBoxDefinition
         private void ButtonApply_Click(object sender, RoutedEventArgs e)
         {
-            DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 0] = TextBoxName.Text;
-            DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 1] = TextBoxCategory.Text;
-            DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 2] = TextBoxStructure.Text;
-            DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 3] = TextBoxDefinition.Text;
+            try
+            {
+                DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 0] = TextBoxName.Text;
+                DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 1] = TextBoxCategory.Text;
+                DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 2] = TextBoxStructure.Text;
+                DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 3] = TextBoxDefinition.Text;
 
-            ClearAll();
-            ClearFocus();
-            ButtonVisibility(true, false, true); // hide ButtonApply and ButtonCancel
-            BubbleSort();
+                ClearAll();
+                ClearFocus();
+                ButtonVisibility(true, false, true); // hide ButtonApply and ButtonCancel
+                BubbleSort();
+            }
+            catch (IndexOutOfRangeException) // when no row is selected
+            {
+                MessageBox.Show("Please select an item to edit.");
+                ClearAll();
+                ButtonVisibility(true, false, true); // hide ButtonApply and ButtonCancel
+                return;
+            }
         }
 
         // clears selected row in ListViewOutput
@@ -159,10 +170,10 @@ namespace DataStructureWikiApp
             ButtonVisibility(true, false, true); // hide ButtonApply and ButtonCancel
         }
 
-        private void ButtonVisibility(bool a, bool b, bool c)
+        private void ButtonVisibility(bool buttonEdit, bool buttonApplyCancel, bool enabled)
         {
             // if ButtonEdit is clicked
-            if (a == false && b == true)
+            if (buttonEdit == false && buttonApplyCancel == true)
             {
                 ButtonEdit.Visibility = Visibility.Hidden;
                 ButtonApply.Visibility = Visibility.Visible;
@@ -170,40 +181,49 @@ namespace DataStructureWikiApp
             }
 
             // if ButtonApply or ButtonCancel is clicked
-            if (a == true && b == false)
+            if (buttonEdit == true && buttonApplyCancel == false)
             {
                 ButtonEdit.Visibility = Visibility.Visible;
                 ButtonApply.Visibility = Visibility.Hidden;
                 ButtonCancel.Visibility = Visibility.Hidden;
             }
 
-            ButtonOpen.IsEnabled = c;
-            ButtonSave.IsEnabled = c;
-            ButtonBinarySearch.IsEnabled = c;
-            ButtonAdd.IsEnabled = c;
-            ButtonDelete.IsEnabled = c;
+            ButtonOpen.IsEnabled = enabled;
+            ButtonSave.IsEnabled = enabled;
+            ButtonBinarySearch.IsEnabled = enabled;
+            ButtonAdd.IsEnabled = enabled;
+            ButtonDelete.IsEnabled = enabled;
         }
         #endregion
 
         #region Delete
         private void ButtonDelete_Click(object sender, RoutedEventArgs e)
         {
-            // display prompt
-            MessageBoxResult result = MessageBox.Show("Delete this data structure?", "", MessageBoxButton.YesNo);
-
-            // if yes, set elements in selected row from ListViewOutput as null
-            if (result == MessageBoxResult.Yes)
+            try
             {
-                DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 0] = null;
-                DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 1] = null;
-                DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 2] = null;
-                DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 3] = null;
+                // display prompt
+                MessageBoxResult result = MessageBox.Show("Delete this data structure?", "", MessageBoxButton.YesNo);
 
-                // decrease ptr
-                ptr--;
+                // if yes, set elements in selected row from ListViewOutput as null
+                if (result == MessageBoxResult.Yes)
+                {
+                    DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 0] = null;
+                    DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 1] = null;
+                    DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 2] = null;
+                    DataStructures[ListViewOutput.Items.IndexOf(ListViewOutput.SelectedItem), 3] = null;
 
+                    // decrease ptr
+                    ptr--;
+
+                    ClearAll();
+                    BubbleSort();
+                }
+            }
+            catch (IndexOutOfRangeException)
+            {
+                MessageBox.Show("Please select an item to delete.");
                 ClearAll();
-                BubbleSort();
+                return;
             }
         }
         #endregion
@@ -374,24 +394,32 @@ namespace DataStructureWikiApp
         #region Save
         private void ButtonSave_Click(object sender, RoutedEventArgs e)
         {
-            // displays prompt to save the 2D array to a data file
-            SaveFileDialog sfd = new SaveFileDialog
+            if (DataStructures[0, 0] == null)
             {
-                DefaultExt = "dat",
-                Filter = "data files (*.dat)|*.dat"
-            };
-
-            // if ok
-            if (sfd.ShowDialog() == true)
-            {
-                BubbleSort();
-
-                // calls SaveFile with selected file
-                SaveFile(sfd.FileName);
+                MessageBox.Show("Please enter data to save.");
+                return;
             }
             else
-            { // if cancel or exit
-                return;
+            {
+                // displays prompt to save the 2D array to a data file
+                SaveFileDialog sfd = new SaveFileDialog
+                {
+                    DefaultExt = "dat",
+                    Filter = "data files (*.dat)|*.dat"
+                };
+
+                // if ok
+                if (sfd.ShowDialog() == true)
+                {
+                    BubbleSort();
+
+                    // calls SaveFile with selected file
+                    SaveFile(sfd.FileName);
+                }
+                else
+                { // if cancel or exit
+                    return;
+                }
             }
         }
 
@@ -405,11 +433,14 @@ namespace DataStructureWikiApp
                     // while row is less than ptr (to not include nulls)
                     for (int row = 0; row < ptr; row++)
                     {
-                        // writes row elements 0, 1, 2 and 3 into the 2D array
-                        bw.Write(DataStructures[row, 0]);
-                        bw.Write(DataStructures[row, 1]);
-                        bw.Write(DataStructures[row, 2]);
-                        bw.Write(DataStructures[row, 3]);
+                        if (DataStructures[row, 0] != null)
+                        {
+                            // writes row elements 0, 1, 2 and 3 into the 2D array
+                            bw.Write(DataStructures[row, 0]);
+                            bw.Write(DataStructures[row, 1]);
+                            bw.Write(DataStructures[row, 2]);
+                            bw.Write(DataStructures[row, 3]);
+                        }
                     }
                 }
             }
@@ -421,9 +452,9 @@ namespace DataStructureWikiApp
         #endregion
     }
 
-    #region Populate
+    #region ListViewItem
     // class is used for data binding ListViewOutput columns
-    public class Pop
+    public class ListViewItem
     {
         public string? Name
         {
